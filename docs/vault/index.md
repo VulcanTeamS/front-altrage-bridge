@@ -24,3 +24,4 @@
 - Document code generation pipeline for adapters.
 - Add developer onboarding checklist.
 - Capture adapter-side usage patterns for `BridgeRegistry` helpers.
+- Publish host integration runbook for ALT:V/RageMP WebViews.

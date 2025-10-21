@@ -39,6 +39,20 @@ pnpm test
 - `createRageMPBridge()` – RageMP CEF bridge exposing the same typed surface as the ALT:V adapter.
 - Both adapters accept custom payload transformers and error handlers to align with project-specific plumbing.
 
+#### ALT:V Integration Checklist
+
+1. Inject `createAltVBridge({ schema, host })` inside the WebView entrypoint.
+2. Если прямой доступ к `alt` невозможен, передайте `hostResolver: () => window.alt`.
+3. `emitToServer` и `emitToClient` автоматически валидируют payload; ошибки пробрасываются в `onError` (по умолчанию – `console.error`).
+4. Для тестов замокайте `AltVLike` (см. `packages/adapter-altv/src/__tests__/altv-bridge.test.ts`).
+
+#### RageMP Integration Checklist
+
+1. Импортируйте `createRageMPBridge({ schema, host })` в CEF-странице.
+2. При необходимости используйте `hostResolver: () => window.mp`.
+3. Если нужно переопределить регистрацию событий, передайте `registerServerEvent` / `registerClientEvent`. По умолчанию используется `mp.events.add/remove`.
+4. Примеры сценариев и моков – `packages/adapter-ragemp/src/__tests__/ragemp-bridge.test.ts`.
+
 ## Branching & Commits
 
 - Feature branches: `feature/<scope>-<short-description>` (e.g. `feature/core-schema-drafts`).
