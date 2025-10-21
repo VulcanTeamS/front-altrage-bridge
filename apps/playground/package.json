@@ -1,0 +1,23 @@
+{
+  "name": "@altrage/bridge-playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rimraf dist",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "@altrage/bridge-core": "workspace:*",
+    "@altrage/bridge-adapter-altv": "workspace:*",
+    "@altrage/bridge-adapter-ragemp": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^7.1.11"
+  }
+}

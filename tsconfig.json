@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/adapter-altv" },
+    { "path": "./packages/adapter-ragemp" },
+    { "path": "./apps/docs" },
+    { "path": "./apps/playground" }
+  ]
+}

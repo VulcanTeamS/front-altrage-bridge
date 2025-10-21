@@ -1,0 +1,26 @@
+{
+  "name": "@altrage/bridge-adapter-ragemp",
+  "version": "0.0.0",
+  "description": "RageMP adapter for the Altrage UI bridge.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rimraf dist",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest watch"
+  },
+  "dependencies": {
+    "@altrage/bridge-core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
