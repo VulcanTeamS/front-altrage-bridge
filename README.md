@@ -33,6 +33,12 @@ pnpm test
 - `BridgeRegistry` – runtime validation façade that adapters use to parse payloads/responses.
 - All schemas leverage `zod` to share type-level and runtime guarantees.
 
+### Environment Adapters
+
+- `createAltVBridge()` – strongly typed ALT:V WebView bridge with inbound/outbound validation.
+- `createRageMPBridge()` – RageMP CEF bridge exposing the same typed surface as the ALT:V adapter.
+- Both adapters accept custom payload transformers and error handlers to align with project-specific plumbing.
+
 ## Branching & Commits
 
 - Feature branches: `feature/<scope>-<short-description>` (e.g. `feature/core-schema-drafts`).

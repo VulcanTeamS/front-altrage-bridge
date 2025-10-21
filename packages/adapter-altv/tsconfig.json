@@ -7,6 +7,6 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo",
     "noEmit": true
   },
-  "include": ["src"],
+  "include": ["src", "vitest.config.ts"],
   "references": [{ "path": "../core" }]
 }

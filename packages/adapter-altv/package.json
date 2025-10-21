@@ -20,6 +20,9 @@
   "dependencies": {
     "@altrage/bridge-core": "workspace:*"
   },
+  "devDependencies": {
+    "zod": "^4.1.12"
+  },
   "publishConfig": {
     "access": "public"
   }

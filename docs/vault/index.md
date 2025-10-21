@@ -16,6 +16,7 @@
 - Tooling expectations (linting, testing, CI/CD).
 - Documentation portal design principles.
 - Playbook for future UI feature teams integrating the bridge.
+- Adapter specs for ALT:V and RageMP WebViews.
 
 ## To Do
 

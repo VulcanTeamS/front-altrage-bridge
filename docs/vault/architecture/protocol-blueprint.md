@@ -11,7 +11,11 @@
 - Core tooling lives in `@altrage/bridge-core`:
   - `createBridgeSchema()` – fluent builder for composing event registries.
   - `defineEvent()` / `defineSchema()` – helpers for modularising contracts across packages.
-  - `BridgeRegistry` – runtime validation + lookup façade used by adapters.
+- `BridgeRegistry` – runtime validation + lookup façade used by adapters.
+- Adapter layer wraps registry outputs:
+  - `packages/adapter-altv` exposes `createAltVBridge()` for WebView globals (`alt.emit`, `alt.onServer`, etc.).
+  - `packages/adapter-ragemp` exposes `createRageMPBridge()` for RageMP (`mp.trigger`, `mp.events.callRemote`).
+  - Both adapters accept custom transformers for payload serialisation and error reporting.
 
 ## Event Categories
 
@@ -47,6 +51,7 @@ const result = await bridge.call.uiToServer('market:purchase', {
 2. Host applications call `createBridgeSchema().merge(...).build()` to produce an immutable snapshot.
 3. Adapters instantiate `createBridgeRegistry(schema)` to access type-safe payload/response parsing.
 4. Documentation tooling consumes `schema.toJSON()` for explorer views and Obsidian exports.
+5. Environment adapters (`altv`, `ragemp`) consume the same schema snapshot to enforce runtime validation.
 
 ## Metadata Requirements
 

@@ -39,6 +39,7 @@
 - `pnpm --filter @altrage/bridge-core test -- --runInBand` for deterministic runs.
 - `pnpm exec changeset` (future) for release notes.
 - Schemas live in `packages/core/src`; add new events through `createBridgeSchema` or `defineSchema` utilities.
+- Environment-specific logic belongs in `packages/adapter-altv` and `packages/adapter-ragemp`; prefer consuming `createAltVBridge` / `createRageMPBridge` rather than accessing globals directly.
 
 ## Quality Gates
 

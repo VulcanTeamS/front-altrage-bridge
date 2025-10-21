@@ -162,3 +162,21 @@ export interface BridgeSchemaJSON {
   /** Array of documented events. */
   readonly events: ReadonlyArray<BridgeSchemaJSONEvent>;
 }
+
+/**
+ * Narrows a record of bridge events to those matching the provided direction.
+ */
+export type BridgeEventsByDirection<
+  Defs extends BridgeEventRecord,
+  Direction extends BridgeDirection,
+> = {
+  [Id in keyof Defs as Defs[Id]['direction'] extends Direction ? Id : never]: Defs[Id];
+};
+
+/**
+ * Convenience alias returning the event identifiers declared for a specific direction.
+ */
+export type BridgeEventIdsByDirection<
+  Defs extends BridgeEventRecord,
+  Direction extends BridgeDirection,
+> = keyof BridgeEventsByDirection<Defs, Direction>;

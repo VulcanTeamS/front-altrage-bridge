@@ -105,12 +105,20 @@ importers:
       '@altrage/bridge-core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
 
   packages/adapter-ragemp:
     dependencies:
       '@altrage/bridge-core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
 
   packages/core:
     dependencies:
