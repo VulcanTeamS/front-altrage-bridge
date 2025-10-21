@@ -54,68 +54,57 @@ type ClientInboundHandler<Defs extends BridgeEventRecord, Id extends ClientToUiE
  * Minimal ALT:V WebView host surface consumed by the bridge adapter.
  */
 export interface AltVLike {
-  /**
-   *
-   */
+  /** Emits an event to the UI context. */
   emit(eventName: string, ...args: unknown[]): unknown;
-  /**
-   *
-   */
+  /** Emits an event to the server context. */
   emitServer(eventName: string, ...args: unknown[]): unknown;
-  /**
-   *
-   */
+  /** Registers a listener for UI-originated events. */
   on(eventName: string, listener: (...args: unknown[]) => void): unknown;
-  /**
-   *
-   */
-  off?(eventName: string, listener: (...args: unknown[]) => void): unknown;
-  /**
-   *
-   */
+  /** Removes a previously registered UI listener. */
+  off(eventName: string, listener: (...args: unknown[]) => void): unknown;
+  /** Registers a listener for server-originated events. */
   onServer(eventName: string, listener: (...args: unknown[]) => void): unknown;
-  /**
-   *
-   */
-  offServer?(eventName: string, listener: (...args: unknown[]) => void): unknown;
-}
-
-interface AltVGlobal {
-  alt?: AltVLike;
+  /** Removes a previously registered server listener. */
+  offServer(eventName: string, listener: (...args: unknown[]) => void): unknown;
 }
 
 type IncomingResolver = (id: string, args: unknown[]) => unknown;
 type OutgoingPreparer = (id: string, payload: unknown) => unknown[];
 type ErrorReporter = (error: unknown) => void;
+type HostResolver = () => AltVLike;
 
 /**
  * Customisation options for the ALT:V bridge adapter.
  */
 export interface AltVBridgeOptions<Defs extends BridgeEventRecord> {
   /**
-   *
+   * Immutable schema describing the events supported by the bridge instance.
    */
   schema: BridgeSchema<Defs>;
   /**
-   *
+   * Optional host instance; defaults to resolving the global `alt` object.
    */
   host?: AltVLike;
   /**
-   *
+   * Pre-built registry, enabling shared caching across multiple adapters.
    */
   registry?: BridgeRegistry<Defs>;
   /**
-   *
+   * Custom resolver for inbound payloads emitted by the host.
    */
   resolveIncomingPayload?: IncomingResolver;
   /**
-   *
+   * Serializer invoked before delegating payloads to host emitters.
    */
   prepareOutgoingPayload?: OutgoingPreparer;
   /**
-   *
+   * Error reporting hook triggered when handlers throw.
    */
   onError?: ErrorReporter;
+  /**
+   * Resolver executed when `host` is omitted; should return an ALT:V host instance.
+   */
+  hostResolver?: HostResolver;
 }
 
 /**
@@ -123,15 +112,15 @@ export interface AltVBridgeOptions<Defs extends BridgeEventRecord> {
  */
 export interface AltVBridge<Defs extends BridgeEventRecord> {
   /**
-   *
+   * Schema snapshot used by this bridge instance.
    */
   readonly schema: BridgeSchema<Defs>;
   /**
-   *
+   * Runtime registry providing typed payload parsing helpers.
    */
   readonly registry: BridgeRegistry<Defs>;
   /**
-   *
+   * Emits payloads towards the server using `emitServer` after validation.
    */
   emitToServer<Id extends UiToServerEventId<Defs>>(
     id: Id,
@@ -203,20 +192,30 @@ const defaultErrorReporter: ErrorReporter = (error) => {
 };
 
 /**
- * Resolves the ALT:V host from global scope when not provided explicitly.
+ * Resolves the ALT:V host from overrides, custom resolvers, or global scope.
  *
- * @param explicit - Optional host instance supplied by the consumer.
+ * @param explicit - Host instance supplied via options.
+ * @param resolver - Optional custom resolver used when host is omitted.
  * @returns ALT:V host implementation.
+ * @throws Error when no host can be resolved.
  * @internal
  */
-const resolveHost = (explicit?: AltVLike): AltVLike => {
+const resolveHost = (explicit?: AltVLike, resolver?: HostResolver): AltVLike => {
   if (explicit) {
     return explicit;
   }
 
-  const globalTarget = globalThis as unknown as AltVGlobal;
+  if (resolver) {
+    const resolved = resolver();
+    if (!resolved) {
+      throw new Error('ALT:V bridge host resolver returned a falsy value.');
+    }
+    return resolved;
+  }
 
-  if (globalTarget && globalTarget.alt) {
+  const globalTarget = globalThis as { alt?: AltVLike };
+
+  if (globalTarget?.alt) {
     return globalTarget.alt;
   }
 
@@ -288,7 +287,7 @@ const findWrappedHandler = (
 export const createAltVBridge = <Defs extends BridgeEventRecord>(
   options: AltVBridgeOptions<Defs>,
 ): AltVBridge<Defs> => {
-  const host = resolveHost(options.host);
+  const host = resolveHost(options.host, options.hostResolver);
   const schema = options.schema;
   const registry = options.registry ?? createBridgeRegistry(schema);
   const resolveIncoming = options.resolveIncomingPayload ?? defaultResolveIncoming;
@@ -368,7 +367,7 @@ export const createAltVBridge = <Defs extends BridgeEventRecord>(
         handler as (...args: unknown[]) => void,
       );
 
-      if (stored && host.offServer) {
+      if (stored) {
         host.offServer(String(id), stored);
       }
 
@@ -411,7 +410,7 @@ export const createAltVBridge = <Defs extends BridgeEventRecord>(
         handler as (...args: unknown[]) => void,
       );
 
-      if (stored && host.off) {
+      if (stored) {
         host.off(String(id), stored);
       }
 

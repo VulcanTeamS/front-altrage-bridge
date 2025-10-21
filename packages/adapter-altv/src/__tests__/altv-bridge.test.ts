@@ -201,4 +201,28 @@ describe('createAltVBridge', () => {
     wrapped('meta', { missionId: 'bravo', status: 'pending' });
     expect(handler).toHaveBeenCalledWith({ missionId: 'bravo', status: 'pending' });
   });
+
+  it('resolves host using a custom resolver when host is omitted', () => {
+    const { host } = createHost();
+    const resolver = vi.fn(() => host);
+    const { schema: bridgeSchema } = createSchema();
+
+    const localBridge = createAltVBridge({
+      schema: bridgeSchema,
+      hostResolver: resolver,
+    });
+
+    expect(resolver).toHaveBeenCalledTimes(1);
+
+    localBridge.emitToClient('hud:toggle', { visible: true });
+    expect(host.emit).toHaveBeenCalledWith('hud:toggle', { visible: true });
+  });
+
+  it('throws when host cannot be resolved', () => {
+    const { schema: bridgeSchema } = createSchema();
+
+    expect(() => createAltVBridge({ schema: bridgeSchema })).toThrow(
+      'ALT:V bridge host is not available. Provide a host explicitly.',
+    );
+  });
 });
