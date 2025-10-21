@@ -54,17 +54,11 @@ type ClientInboundHandler<Defs extends BridgeEventRecord, Id extends ClientToUiE
  * Minimal RageMP event facade exposed to the browser runtime.
  */
 export interface RageMPEventsLike {
-  /**
-   *
-   */
+  /** Registers a listener for browser-level events. */
   add(eventName: string, listener: (...args: unknown[]) => void): unknown;
-  /**
-   *
-   */
+  /** Removes a previously registered listener. */
   remove?(eventName: string, listener: (...args: unknown[]) => void): unknown;
-  /**
-   *
-   */
+  /** Emits events towards the server runtime. */
   callRemote?(eventName: string, ...args: unknown[]): unknown;
 }
 
@@ -72,13 +66,9 @@ export interface RageMPEventsLike {
  * Minimal RageMP host API used by the adapter.
  */
 export interface RageMPLike {
-  /**
-   *
-   */
+  /** Emits events towards the client runtime. */
   trigger(eventName: string, ...args: unknown[]): unknown;
-  /**
-   *
-   */
+  /** Host event facade used for registration/removal and remote calls. */
   events: RageMPEventsLike;
 }
 
@@ -89,6 +79,7 @@ interface RageMPGlobal {
 type IncomingResolver = (id: string, args: unknown[]) => unknown;
 type OutgoingPreparer = (id: string, payload: unknown) => unknown[];
 type ErrorReporter = (error: unknown) => void;
+type HostResolver = () => RageMPLike;
 type ListenerRegistrar = (
   host: RageMPLike,
   event: string,
@@ -105,54 +96,32 @@ type Emitter = (host: RageMPLike, event: string, args: unknown[]) => void;
  * Configuration options for the RageMP bridge adapter.
  */
 export interface RageMPBridgeOptions<Defs extends BridgeEventRecord> {
-  /**
-   *
-   */
+  /** Immutable schema describing the bridge catalogue. */
   schema: BridgeSchema<Defs>;
-  /**
-   *
-   */
+  /** Optional host instance; defaults to resolving the global `mp` object. */
   host?: RageMPLike;
-  /**
-   *
-   */
+  /** Pre-built registry instance shared across adapters. */
   registry?: BridgeRegistry<Defs>;
-  /**
-   *
-   */
+  /** Custom resolver for inbound payloads emitted by the host. */
   resolveIncomingPayload?: IncomingResolver;
-  /**
-   *
-   */
+  /** Serializer invoked before delegating payloads to the host emitters. */
   prepareOutgoingPayload?: OutgoingPreparer;
-  /**
-   *
-   */
+  /** Error reporting hook triggered when handlers throw. */
   onError?: ErrorReporter;
-  /**
-   *
-   */
+  /** Custom registration hook for server → UI events. */
   registerServerEvent?: ListenerRegistrar;
-  /**
-   *
-   */
+  /** Custom removal hook for server → UI events. */
   removeServerEvent?: ListenerRemover;
-  /**
-   *
-   */
+  /** Custom registration hook for client → UI events. */
   registerClientEvent?: ListenerRegistrar;
-  /**
-   *
-   */
+  /** Custom removal hook for client → UI events. */
   removeClientEvent?: ListenerRemover;
-  /**
-   *
-   */
+  /** Emitter used to forward payloads to the server runtime. */
   emitToServer?: Emitter;
-  /**
-   *
-   */
+  /** Emitter used to forward payloads to the client runtime. */
   emitToClient?: Emitter;
+  /** Resolver executed when `host` is omitted; should return a RageMP host instance. */
+  hostResolver?: HostResolver;
 }
 
 /**
@@ -229,20 +198,29 @@ const defaultErrorReporter: ErrorReporter = (error) => {
 };
 
 /**
- * Resolves the RageMP host from global scope when not provided explicitly.
+ * Resolves the RageMP host from overrides, custom resolvers, or global scope.
  *
  * @param explicit - Optional host instance supplied by the consumer.
+ * @param resolver - Custom resolver executed when host is omitted.
  * @returns RageMP host implementation.
  * @internal
  */
-const resolveHost = (explicit?: RageMPLike): RageMPLike => {
+const resolveHost = (explicit?: RageMPLike, resolver?: HostResolver): RageMPLike => {
   if (explicit) {
     return explicit;
   }
 
-  const globalTarget = globalThis as unknown as RageMPGlobal;
+  if (resolver) {
+    const resolved = resolver();
+    if (!resolved) {
+      throw new Error('RageMP bridge host resolver returned a falsy value.');
+    }
+    return resolved;
+  }
 
-  if (globalTarget && globalTarget.mp) {
+  const globalTarget = globalThis as RageMPGlobal;
+
+  if (globalTarget?.mp) {
     return globalTarget.mp;
   }
 
@@ -315,6 +293,10 @@ const findWrappedHandler = (
  * @internal
  */
 const defaultRegisterEvent: ListenerRegistrar = (host, event, listener) => {
+  if (typeof host.events?.add !== 'function') {
+    throw new Error('RageMP host cannot register events: events.add is not defined.');
+  }
+
   host.events.add(event, listener);
 };
 
@@ -328,7 +310,9 @@ const defaultRegisterEvent: ListenerRegistrar = (host, event, listener) => {
  * @internal
  */
 const defaultRemoveEvent: ListenerRemover = (host, event, listener) => {
-  host.events.remove?.(event, listener);
+  if (typeof host.events?.remove === 'function') {
+    host.events.remove(event, listener);
+  }
 };
 
 /**
@@ -370,7 +354,7 @@ const defaultEmitToServer: Emitter = (host, event, args) => {
 export const createRageMPBridge = <Defs extends BridgeEventRecord>(
   options: RageMPBridgeOptions<Defs>,
 ): RageMPBridge<Defs> => {
-  const host = resolveHost(options.host);
+  const host = resolveHost(options.host, options.hostResolver);
   const schema = options.schema;
   const registry = options.registry ?? createBridgeRegistry(schema);
   const resolveIncoming = options.resolveIncomingPayload ?? defaultResolveIncoming;

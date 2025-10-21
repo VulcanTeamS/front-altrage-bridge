@@ -233,4 +233,29 @@ describe('createRageMPBridge', () => {
 
     expect(handler).toHaveBeenCalledWith({ missionId: 'bravo', status: 'pending' });
   });
+
+  it('resolves host via resolver when explicit host is omitted', () => {
+    const { host } = createHost();
+    const resolver = vi.fn(() => host);
+    const { schema: bridgeSchema } = createSchema();
+
+    const bridgeInstance = createRageMPBridge({
+      schema: bridgeSchema,
+      host: undefined,
+      hostResolver: resolver,
+    });
+
+    expect(resolver).toHaveBeenCalledTimes(1);
+
+    bridgeInstance.emitToClient('hud:toggle', { visible: true });
+    expect(host.trigger).toHaveBeenCalledWith('hud:toggle', { visible: true });
+  });
+
+  it('throws when host cannot be resolved', () => {
+    const { schema: bridgeSchema } = createSchema();
+
+    expect(() => createRageMPBridge({ schema: bridgeSchema })).toThrow(
+      'RageMP bridge host is not available. Provide a host explicitly.',
+    );
+  });
 });
