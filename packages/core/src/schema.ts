@@ -12,6 +12,11 @@ import type {
 } from './types';
 import { freeze } from './utils/object';
 
+type BridgeEventDraftRecord = Partial<Record<string, AnyBridgeEventDefinition>>;
+type MaterialisedDefs<Defs extends BridgeEventDraftRecord> = {
+  [Key in keyof Defs]-?: Exclude<Defs[Key], undefined>;
+};
+
 /**
  * Immutable snapshot of the bridge schema with convenience lookup helpers.
  */
@@ -50,7 +55,7 @@ export interface BridgeSchema<Defs extends BridgeEventRecord> {
   toJSON(): BridgeSchemaJSON;
 }
 
-interface BridgeSchemaBuilderState<Defs extends BridgeEventRecord> {
+interface BridgeSchemaBuilderState<Defs extends BridgeEventDraftRecord> {
   /**
    * Registers a new event definition within the builder.
    *
@@ -77,7 +82,7 @@ interface BridgeSchemaBuilderState<Defs extends BridgeEventRecord> {
    * @param events - Record of events to merge.
    * @returns Updated builder state containing the merged events.
    */
-  merge<const OtherDefs extends BridgeEventRecord>(
+  merge<const OtherDefs extends BridgeEventDraftRecord>(
     events: OtherDefs,
   ): BridgeSchemaBuilderState<Defs & OtherDefs>;
   /**
@@ -85,7 +90,7 @@ interface BridgeSchemaBuilderState<Defs extends BridgeEventRecord> {
    *
    * @returns Immutable schema containing every registered event.
    */
-  build(): BridgeSchema<Defs>;
+  build(): BridgeSchema<MaterialisedDefs<Defs>>;
 }
 
 /**
@@ -93,8 +98,8 @@ interface BridgeSchemaBuilderState<Defs extends BridgeEventRecord> {
  *
  * @returns Fluent builder for declaring bridge events.
  */
-export const createBridgeSchema = (): BridgeSchemaBuilderState<Record<string, never>> =>
-  createBuilder({} as Record<string, never>);
+export const createBridgeSchema = (): BridgeSchemaBuilderState<BridgeEventDraftRecord> =>
+  createBuilder({} as BridgeEventDraftRecord);
 
 /**
  * Utility for declaring a single event definition with full type inference.
@@ -126,13 +131,13 @@ export const defineEvent = <
 export const defineSchema = <
   const Defs extends Record<
     string,
-    BridgeEventDefinition<string, BridgeDirectionType, unknown, unknown>
+    BridgeEventDefinition<string, BridgeDirectionType, z.ZodTypeAny, z.ZodTypeAny | null>
   >,
 >(
   events: Defs,
 ): Defs => freeze(events);
 
-const createBuilder = <Defs extends BridgeEventRecord>(
+const createBuilder = <Defs extends BridgeEventDraftRecord>(
   definitions: Defs,
 ): BridgeSchemaBuilderState<Defs> => ({
   event<
@@ -156,7 +161,7 @@ const createBuilder = <Defs extends BridgeEventRecord>(
 
     return createBuilder(next);
   },
-  merge<const OtherDefs extends BridgeEventRecord>(events: OtherDefs) {
+  merge<const OtherDefs extends BridgeEventDraftRecord>(events: OtherDefs) {
     const next = {
       ...definitions,
       ...events,
@@ -169,25 +174,39 @@ const createBuilder = <Defs extends BridgeEventRecord>(
   },
 });
 
-const createSchemaSnapshot = <Defs extends BridgeEventRecord>(
+const createSchemaSnapshot = <Defs extends BridgeEventDraftRecord>(
   definitions: Defs,
-): BridgeSchema<Defs> => {
-  const events = freeze({ ...definitions }) as Defs;
+): BridgeSchema<MaterialisedDefs<Defs>> => {
+  const materialised = Object.create(null) as MaterialisedDefs<Defs>;
+
+  for (const key of Object.keys(definitions)) {
+    const event = definitions[key as keyof Defs];
+    if (event) {
+      materialised[key as keyof MaterialisedDefs<Defs>] =
+        event as MaterialisedDefs<Defs>[keyof Defs];
+    }
+  }
+
+  const events = freeze(materialised);
   const cachedByDirection = new Map<BridgeDirectionType, AnyBridgeEventDefinition[]>();
 
   const ensureDirectionIndex = (
     direction: BridgeDirectionType,
   ): ReadonlyArray<AnyBridgeEventDefinition> => {
     if (!cachedByDirection.has(direction)) {
-      const filtered = Object.values(events).filter((event) => event.direction === direction);
+      const filtered = Object.values(events).filter(
+        (event) => event.direction === direction,
+      ) as Array<AnyBridgeEventDefinition>;
 
       cachedByDirection.set(direction, freeze(filtered));
     }
 
-    return (cachedByDirection.get(direction) ?? []) as ReadonlyArray<AnyBridgeEventDefinition>;
+    return cachedByDirection.get(direction) ?? [];
   };
 
-  const getEvent = <Id extends keyof Defs>(id: Id): Defs[Id] => {
+  const getEvent = <Id extends keyof MaterialisedDefs<Defs>>(
+    id: Id,
+  ): MaterialisedDefs<Defs>[Id] => {
     const event = events[id];
 
     if (!event) {
@@ -204,9 +223,12 @@ const createSchemaSnapshot = <Defs extends BridgeEventRecord>(
     list: () => freeze(Object.values(events)),
     listByDirection: (direction) =>
       ensureDirectionIndex(direction) as ReadonlyArray<
-        Extract<Defs[keyof Defs], { direction: typeof direction }>
+        Extract<
+          MaterialisedDefs<Defs>[keyof MaterialisedDefs<Defs>],
+          { direction: typeof direction }
+        >
       >,
-    toJSON: () => mapToJson(events),
+    toJSON: () => mapToJson(events as BridgeEventRecord),
   };
 };
 

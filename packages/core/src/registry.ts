@@ -36,7 +36,7 @@ export class BridgeRegistry<Defs extends BridgeEventRecord> {
     const definition = this.getEvent(id);
 
     try {
-      return definition.payload.parse(payload);
+      return definition.payload.parse(payload) as InferBridgePayload<Defs[Id]>;
     } catch (error) {
       throw new BridgeValidationError(`Payload validation failed for event "${String(id)}"`, {
         cause: error,

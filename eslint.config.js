@@ -53,7 +53,11 @@ export default [
       'import/resolver': {
         node: true,
         typescript: {
-          project: path.resolve(__dirname, './tsconfig.json'),
+          project: [
+            path.resolve(__dirname, './tsconfig.json'),
+            path.resolve(__dirname, './packages/*/tsconfig.json'),
+            path.resolve(__dirname, './apps/*/tsconfig.json'),
+          ],
         },
       },
     },
