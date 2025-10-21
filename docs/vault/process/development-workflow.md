@@ -38,6 +38,7 @@
 - `pnpm lint --filter <package>` to target specific workspace members.
 - `pnpm --filter @altrage/bridge-core test -- --runInBand` for deterministic runs.
 - `pnpm exec changeset` (future) for release notes.
+- Schemas live in `packages/core/src`; add new events through `createBridgeSchema` or `defineSchema` utilities.
 
 ## Quality Gates
 

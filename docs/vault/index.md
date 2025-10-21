@@ -22,3 +22,4 @@
 - Flesh out schema DSL examples.
 - Document code generation pipeline for adapters.
 - Add developer onboarding checklist.
+- Capture adapter-side usage patterns for `BridgeRegistry` helpers.

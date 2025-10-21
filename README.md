@@ -26,6 +26,13 @@ pnpm test
 - `pnpm format` / `pnpm format:write` – Prettier check and write modes.
 - `pnpm lint:staged` – lint-staged pipeline (automatically executed via Husky).
 
+### Core DSL Highlights
+
+- `createBridgeSchema()` – compose event registries with fluent builder ergonomics.
+- `defineEvent()` / `defineSchema()` – modular helpers for sharing event definitions across packages.
+- `BridgeRegistry` – runtime validation façade that adapters use to parse payloads/responses.
+- All schemas leverage `zod` to share type-level and runtime guarantees.
+
 ## Branching & Commits
 
 - Feature branches: `feature/<scope>-<short-description>` (e.g. `feature/core-schema-drafts`).

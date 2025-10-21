@@ -8,6 +8,10 @@
   - Runtime validators (to guard payloads in adapters and dev tooling).
   - Documentation JSON consumed by `apps/docs`.
   - Mock data factories for the playground.
+- Core tooling lives in `@altrage/bridge-core`:
+  - `createBridgeSchema()` – fluent builder for composing event registries.
+  - `defineEvent()` / `defineSchema()` – helpers for modularising contracts across packages.
+  - `BridgeRegistry` – runtime validation + lookup façade used by adapters.
 
 ## Event Categories
 
@@ -36,6 +40,13 @@ const result = await bridge.call.uiToServer('market:purchase', {
 ```
 
 - Calls include correlation IDs, configurable timeouts, and structured error payloads.
+
+### Registry Workflow
+
+1. Feature packages declare events using `defineEvent` and aggregate them via `defineSchema`.
+2. Host applications call `createBridgeSchema().merge(...).build()` to produce an immutable snapshot.
+3. Adapters instantiate `createBridgeRegistry(schema)` to access type-safe payload/response parsing.
+4. Documentation tooling consumes `schema.toJSON()` for explorer views and Obsidian exports.
 
 ## Metadata Requirements
 
